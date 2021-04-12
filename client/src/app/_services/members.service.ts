@@ -47,8 +47,13 @@ export class MembersService {
     if(response){
       return of(response);
     }
-    let params = this.getPaginationHeaders(userParams);
+    let params = this.getPaginationHeaders(userParams.pageNumber,userParams.pageSize);
     
+    params = params.append("minAge",userParams.minAge.toString());
+    params = params.append("maxAge",userParams.maxAge.toString());
+    params = params.append("gender",userParams.gender.toString());
+    params = params.append("orderBy",userParams.orderBy.toString());
+
     return this.getPaginatedResult<Member[]>(this.baseUrl+"users",params).pipe(
       map(response => {
         this.memberCache.set(Object.values(userParams).join("-"), response);
@@ -61,7 +66,7 @@ export class MembersService {
 
     const paginatedResult: PaginatedResult<T> = new PaginatedResult<T>();
 
-    return this.http.get<T>(this.baseUrl + "users", { observe: "response", params }).pipe(
+    return this.http.get<T>(url, { observe: "response", params }).pipe(
       map(response => {
         paginatedResult.result = response.body;
         
@@ -73,15 +78,12 @@ export class MembersService {
     );
   }
 
-  private getPaginationHeaders(userParams: UserParams){
+  private getPaginationHeaders(pageNumber: number, pageSize: number){
     let params = new HttpParams();
     
-    params = params.append("pageNumber",userParams.pageNumber.toString());
-    params = params.append("pageSize",userParams.pageSize.toString());
-    params = params.append("minAge",userParams.minAge.toString());
-    params = params.append("maxAge",userParams.maxAge.toString());
-    params = params.append("gender",userParams.gender.toString());
-    params = params.append("orderBy",userParams.orderBy.toString());
+    params = params.append("pageNumber",pageNumber.toString());
+    params = params.append("pageSize",pageSize.toString());
+
 
     return params;
   }
@@ -112,5 +114,16 @@ export class MembersService {
 
   deletePhoto(photoId: number){
     return this.http.delete(this.baseUrl + "users/delete-photo/"+ photoId);
+  }
+
+  addLike(username: string){
+    return this.http.post(this.baseUrl + "likes/"+username,{});
+  }
+
+  getLikes(predicate: string, pageNumber, pageSize){
+    let params = this.getPaginationHeaders(pageNumber, pageSize);
+    params = params.append("predicate",predicate);
+
+    return this.getPaginatedResult<Partial<Member[]>>(this.baseUrl + "likes",params);
   }
 }
